@@ -1,0 +1,3 @@
+#!/bin/bash
+
+LIVEBOOK_HOME=$(pwd) livebook server
