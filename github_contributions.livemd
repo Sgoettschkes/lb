@@ -1,0 +1,191 @@
+# Github contributions
+
+```elixir
+Mix.install([
+  {:floki, "~> 0.34.0"},
+  {:httpoison, "~> 2.0"},
+  {:jason, "~> 1.4"},
+  {:timex, "~> 3.0"},
+  {:yaml_elixir, "~> 2.9"}
+])
+```
+
+## Section
+
+```elixir
+defmodule Github do
+  # Your GitHub username
+  @username "Sgoettschkes"
+  @gitub_token "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"
+  # If you don't want to start today, put a date in the past in the format %Y-%m-%d
+  @start_date "2011-03-01"
+  # The date you joined GitHub in the format %Y-%m-%d
+  @end_date "2011-02-20"
+
+  def get_contributed_repositories() do
+    url = "https://github.com/#{@username}?tab=overview"
+
+    begin_of_month =
+      case @start_date do
+        nil -> Timex.now() |> Timex.beginning_of_month()
+        start_date -> Timex.parse!(start_date, "%Y-%m-%d", :strftime)
+      end
+
+    iterate(url, begin_of_month)
+  end
+
+  def is_contributor?(repo, page \\ 1) do
+    :timer.sleep(1_000)
+
+    url =
+      "https://api.github.com/repos/#{repo}/contributors?page=#{page}&per_page=100"
+      |> IO.inspect()
+
+    headers = [
+      {"Accept", "application/vnd.github.v3+json"},
+      {"Authorization", "Bearer #{@gitub_token}"}
+    ]
+
+    case HTTPoison.get(url, headers) do
+      {:ok, %{status_code: 200} = response} ->
+        json = Jason.decode!(response.body)
+        contributors = Enum.map(json, fn item -> item["login"] end)
+
+        cond do
+          contributors == [] -> false
+          Enum.member?(contributors, "Sgoettschkes") -> true
+          true -> is_contributor?(repo, page + 1)
+        end
+
+      {:ok, response} ->
+        IO.inspect(response)
+
+      {:error, err} ->
+        IO.inspect(err)
+    end
+  end
+
+  defp iterate(url, begin_of_month) do
+    end_of_month = Timex.end_of_month(begin_of_month)
+
+    {:ok, response} =
+      HTTPoison.get(
+        "#{url}&from=#{Timex.format!(begin_of_month, "%Y-%m-%d", :strftime)}&to=#{Timex.format!(end_of_month, "%Y-%m-%d", :strftime)}"
+      )
+
+    :timer.sleep(10_000)
+
+    case response.status_code do
+      200 ->
+        File.write(Timex.format!(begin_of_month, "%Y_%m_%d", :strftime) <> ".txt", response.body)
+        last_month = Timex.shift(begin_of_month, months: -1)
+
+        if last_month >= Timex.beginning_of_month(Timex.parse!(@end_date, "%Y-%m-%d", :strftime)) do
+          iterate(url, last_month)
+        end
+
+      _ ->
+        IO.inspect(response.headers)
+        IO.inspect(response.body)
+
+        raise "Request failed with status code #{response.status_code}"
+    end
+  end
+end
+```
+
+```elixir
+# Github.get_contributed_repositories()
+```
+
+```elixir
+repos_from_contributions_page =
+  "tmp/"
+  |> File.ls!()
+  |> Enum.map(fn f ->
+    {:ok, doc} = File.read!("tmp/#{f}") |> Floki.parse_document()
+
+    Floki.find(doc, "[data-hovercard-type=\"repository\"]")
+    |> Enum.map(fn {_, _, [text]} -> text end)
+  end)
+  |> List.flatten()
+  |> Enum.uniq()
+  |> Enum.sort_by(&String.downcase/1)
+  |> Enum.filter(&Github.is_contributor?/1)
+  |> Enum.each(fn repo_string ->
+    [org, repo] =
+      if String.contains?(repo_string, "/") do
+        String.split(repo_string, "/")
+      else
+        ["Sgoettschkes", repo_string]
+      end
+
+    IO.puts("""
+    - org: #{org}
+      repo: #{repo}
+    """)
+  end)
+```
+
+```elixir
+contribution_yaml = """
+- org: kriswallsmith
+  repo: assetic
+- org: Seldaek
+  repo: monolog
+- org: ansible
+  repo: ansible
+- org: domcode
+  repo: rafflers
+- org: hoisie
+  repo: web
+- org: jaugustin
+  repo: vagrant-ansible-local 
+- org: Cilex
+  repo: Cilex
+- org: Burgov
+  repo: KeyValueFormBundle
+- org: FriendsOfPHP
+  repo: PHP-CS-Fixer
+- org: codeguy
+  repo: php-the-right-way
+- org: grevory
+  repo: angular-local-storage
+- org: mitchellh
+  repo: vagrant
+- org: mongodb
+  repo: docs
+- org: plumphp
+  repo: plum
+- org: plumphp
+  repo: plum-csv
+- org: reactphp
+  repo: react
+- org: sebastianbergmann
+  repo: phploc
+- org: snc
+  repo: SncRedisBundle
+- org: symfony
+  repo: symfony-docs
+- org: symfony
+  repo: symfony
+- org: josh
+  repo: css-explain
+- org: zendframework
+  repo: zf2-documentation
+"""
+
+{:ok, contributions} = YamlElixir.read_from_string(contribution_yaml)
+
+current_contributions =
+  contributions
+  |> Enum.sort_by(fn %{"org" => org, "repo" => repo} ->
+    "#{String.downcase(org)}/#{String.downcase(repo)}"
+  end)
+  |> Enum.each(fn %{"org" => org, "repo" => repo} ->
+    IO.puts("""
+    - org: #{org}
+      repo: #{repo}
+    """)
+  end)
+```
