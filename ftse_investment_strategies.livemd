@@ -1,0 +1,66 @@
+# FTSE investment strategies
+
+```elixir
+Mix.install([
+  {:nimble_csv, "~> 1.2"}
+])
+```
+
+## Section
+
+```elixir
+NimbleCSV.define(MyParser, separator: ",", escape: "\"")
+
+base_data =
+  "data/ftse_data.csv"
+  |> File.stream!()
+  |> MyParser.parse_stream()
+  |> Enum.map(fn [date, index_value] ->
+    %{date: date, index_value: String.to_float(index_value)}
+  end)
+  |> Enum.reduce([], fn x, acc ->
+    ath =
+      (acc ++ [x])
+      |> Enum.map(fn a -> a.index_value end)
+      |> Enum.take(-12)
+      |> Enum.max()
+
+    acc ++ [%{date: x.date, index_value: x.index_value, ath: ath}]
+  end)
+```
+
+```elixir
+base_data
+|> Enum.map(fn x -> 1000 / x.index_value end)
+|> Enum.sum()
+```
+
+```elixir
+data =
+  base_data
+  |> Enum.reduce(%{data: [], savings: 0}, fn x, acc ->
+    diff = x.index_value * 100 / x.ath
+
+    case diff do
+      diff when diff >= 100 ->
+        new_x = Map.put(x, :shares, 500 / x.index_value)
+        %{data: acc.data ++ [new_x], savings: acc.savings + 500}
+
+      diff when diff >= 99 ->
+        new_x = Map.put(x, :shares, 800 / x.index_value)
+        %{data: acc.data ++ [new_x], savings: acc.savings + 200}
+
+      diff when diff >= 98 ->
+        new_x = Map.put(x, :shares, 1000 / x.index_value)
+        %{data: acc.data ++ [new_x], savings: acc.savings}
+
+      _ ->
+        investment = 1000 + acc.savings / 2
+        new_x = Map.put(x, :shares, investment / x.index_value)
+        %{data: acc.data ++ [new_x], savings: acc.savings / 2}
+    end
+  end)
+  |> Map.get(:data)
+  |> Enum.map(fn x -> x.shares end)
+  |> Enum.sum()
+```
