@@ -6,17 +6,21 @@ Mix.install([
   {:httpoison, "~> 2.0"},
   {:jason, "~> 1.4"},
   {:timex, "~> 3.0"},
-  {:yaml_elixir, "~> 2.9"}
+  {:yaml_elixir, "~> 2.9"},
+  {:kino, "~> 0.8.1"}
 ])
 ```
 
 ## Section
 
 ```elixir
+github_token = Kino.Input.password("Github Token")
+```
+
+```elixir
 defmodule Github do
   # Your GitHub username
   @username "Sgoettschkes"
-  @gitub_token "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"
   # If you don't want to start today, put a date in the past in the format %Y-%m-%d
   @start_date "2011-03-01"
   # The date you joined GitHub in the format %Y-%m-%d
@@ -43,7 +47,7 @@ defmodule Github do
 
     headers = [
       {"Accept", "application/vnd.github.v3+json"},
-      {"Authorization", "Bearer #{@gitub_token}"}
+      {"Authorization", "Bearer #{gitub_token}"}
     ]
 
     case HTTPoison.get(url, headers) do
