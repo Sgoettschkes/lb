@@ -1,0 +1,28 @@
+# Bumblebee
+
+```elixir
+Mix.install(
+  [{:bumblebee, "~> 0.2.0"}, {:exla, ">= 0.0.0"}, {:kino, "~> 0.8.0"}],
+  config: [nx: [default_backend: EXLA.Backend]]
+)
+```
+
+## Section
+
+```elixir
+Path.wildcard("/Users/sebastian/Documents/Second\ Brain/**/*.md")
+```
+
+```elixir
+{:ok, gpt2} = Bumblebee.load_model({:hf, "gpt2"})
+{:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "gpt2"})
+
+serving = Bumblebee.Text.generation(gpt2, tokenizer, max_new_tokens: 10)
+
+text_input = Kino.Input.text("Text", default: "Yesterday, I was reading a book and")
+```
+
+```elixir
+text = Kino.Input.read(text_input)
+Nx.Serving.run(serving, text)
+```
