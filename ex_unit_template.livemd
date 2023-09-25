@@ -1,0 +1,30 @@
+# ExUnit Template
+
+```elixir
+ExUnit.start(autorun: false)
+```
+
+## Code
+
+```elixir
+defmodule MyCode do
+end
+```
+
+## Tests
+
+```elixir
+defmodule TestInternals do
+  use ExUnit.Case, async: true
+
+  test "plus is correct" do
+    assert 1 + 1 == 2
+  end
+end
+```
+
+## Executing the tests
+
+```elixir
+ExUnit.run()
+```
