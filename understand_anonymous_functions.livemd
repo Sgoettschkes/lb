@@ -1,0 +1,7 @@
+# Understanding anonymous functions
+
+## Section
+
+```elixir
+IO.inspect(fn _x, _y -> {:cont, []} end)
+```
