@@ -24,21 +24,49 @@ Examples
 
 `[1,2,2,3,3,3,4,3,3,3,2,2,1]` should return 4, because it appears 1 time (which is odd).
 
+## First implementation
+
 ```elixir
-defmodule MyCode do
+defmodule OddFinder do
+  def find(list) do
+    {elem, _count} =
+      list
+      |> Enum.reduce(%{}, fn elem, acc ->
+        Map.update(acc, elem, 1, fn c -> c + 1 end)
+      end)
+      |> Enum.find(fn {_elem, count} -> rem(count, 2) == 1 end)
+
+    elem
+  end
 end
 ```
 
 ## Tests
 
 ```elixir
-defmodule TestMyCode do
+defmodule OddFinderTest do
   use ExUnit.Case, async: true
+
+  test "finds odd number with one element" do
+    assert OddFinder.find([7]) == 7
+  end
+
+  test "finds odd number with a different element" do
+    assert OddFinder.find([0]) == 0
+  end
+
+  test "finds odd number from list with three elements" do
+    assert OddFinder.find([1, 1, 2]) == 2
+  end
+
+  test "finds odd number from list with 5 elements" do
+    assert OddFinder.find([0, 1, 0, 1, 0]) == 0
+  end
+
+  test "finds odd number from list with many elements" do
+    assert OddFinder.find([1, 2, 2, 3, 3, 3, 4, 3, 3, 3, 2, 2, 1]) == 4
+  end
 end
-```
 
-## Executing the tests
-
-```elixir
 ExUnit.run()
 ```
