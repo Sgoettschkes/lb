@@ -1,0 +1,37 @@
+# Encryption Examples
+
+## Section
+
+```elixir
+
+```
+
+```elixir
+{pub, priv} = :crypto.generate_key(:rsa, {2048, 65537})
+
+pub |> IO.inspect()
+priv |> IO.inspect()
+
+# File.write!("tmp/key.pub", pub)
+
+hashed_password = :crypto.hash(:sha256, "my password")
+
+encrypted_priv = :crypto.crypto_one_time(:aes_256_ecb, hashed_password, priv, encrypt: true)
+
+decrypted_priv =
+  :crypto.crypto_one_time(:aes_256_ecb, hashed_password, encrypted_priv, encrypt: false)
+
+# IO.inspect(priv)
+# decrypted_priv
+nil
+# is_binary(pub)
+
+pem_entry =
+  :public_key.pem_entry_encode(:RSAPublicKey, {
+    :RSAPublicKey,
+    Enum.at(pub, 0),
+    Enum.at(pub, 1)
+  })
+
+{:ok, :public_key.pem_encode([pem_entry])}
+```
