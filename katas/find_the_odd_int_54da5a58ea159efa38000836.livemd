@@ -1,6 +1,8 @@
 # Find the odd int
 
 ```elixir
+Mix.install([{:propcheck, "~> 1.4", only: [:test, :dev]}])
+
 ExUnit.start(autorun: false)
 ```
 
@@ -29,14 +31,60 @@ Examples
 ```elixir
 defmodule OddFinder do
   def find(list) do
-    {elem, _count} =
-      list
-      |> Enum.reduce(%{}, fn elem, acc ->
-        Map.update(acc, elem, 1, fn c -> c + 1 end)
-      end)
-      |> Enum.find(fn {_elem, count} -> rem(count, 2) == 1 end)
+    list
+    |> Enum.reduce(%{}, fn elem, acc ->
+      Map.update(acc, elem, 1, fn c -> c + 1 end)
+    end)
+    |> Enum.find(fn {_elem, count} -> rem(count, 2) == 1 end)
+    |> Tuple.to_list()
+    |> List.first()
+  end
+end
+```
 
-    elem
+## Second implementation
+
+This time, let's not use any Enum functions
+
+```elixir
+defmodule OddFinderWithoutEnum do
+  def find(list) do
+    list
+    |> reduce()
+    |> find_odd()
+  end
+
+  defp reduce(remaining_list) do
+    reduce(remaining_list, %{})
+  end
+
+  defp reduce([], acc) do
+    acc
+  end
+
+  defp reduce(remaining_list, acc) do
+    {elem, list_without_elem} = List.pop_at(remaining_list, 0)
+
+    new_acc = Map.update(acc, elem, 1, fn c -> c + 1 end)
+    reduce(list_without_elem, new_acc)
+  end
+
+  defp find_odd([]) do
+    nil
+  end
+
+  defp find_odd(l) when is_map(l) do
+    find_odd(Map.to_list(l))
+  end
+
+  defp find_odd(l) when is_list(l) do
+    {{elem, count}, l_without_elem} = List.pop_at(l, 0)
+
+    if rem(count, 2) == 1 do
+      elem
+    else
+      find_odd(l_without_elem)
+    end
   end
 end
 ```
@@ -65,6 +113,47 @@ defmodule OddFinderTest do
 
   test "finds odd number from list with many elements" do
     assert OddFinder.find([1, 2, 2, 3, 3, 3, 4, 3, 3, 3, 2, 2, 1]) == 4
+  end
+end
+
+defmodule OddFinderWithoutEnumTest do
+  use ExUnit.Case, async: true
+
+  test "finds odd number with one element" do
+    assert OddFinderWithoutEnum.find([7]) == 7
+  end
+
+  test "finds odd number with a different element" do
+    assert OddFinderWithoutEnum.find([0]) == 0
+  end
+
+  test "finds odd number from list with three elements" do
+    assert OddFinderWithoutEnum.find([1, 1, 2]) == 2
+  end
+
+  test "finds odd number from list with 5 elements" do
+    assert OddFinderWithoutEnum.find([0, 1, 0, 1, 0]) == 0
+  end
+
+  test "finds odd number from list with many elements" do
+    assert OddFinderWithoutEnum.find([1, 2, 2, 3, 3, 3, 4, 3, 3, 3, 2, 2, 1]) == 4
+  end
+end
+
+ExUnit.run()
+```
+
+```elixir
+defmodule OddFinderPropertyTestingTest do
+  use ExUnit.Case, async: true
+  use PropCheck
+
+  test "finds odd number with one element" do
+    quickcheck(
+      forall l <- list(nat()) do
+        rem(OddFinder.find(l), 2) == 1
+      end
+    )
   end
 end
 
